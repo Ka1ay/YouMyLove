@@ -26,7 +26,6 @@
             background: black;
             border-radius: 20px;
             box-shadow: 0 0 50px rgba(255, 107, 107, 0.3);
-            cursor: pointer;
         }
     </style>
 </head>
@@ -75,6 +74,7 @@
         let step = 0;
         const points = getHeartPoints();
         let animationId = null;
+        let isComplete = false;
         
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -110,34 +110,37 @@
             
             // Если ещё не все точки показаны - продолжаем анимацию
             if (step < points.length) {
-                step += 2; // Скорость появления (чем больше число, тем быстрее)
+                step += 0.3; // ОЧЕНЬ МЕДЛЕННО (было 2, теперь 0.3)
                 animationId = requestAnimationFrame(draw);
             } else {
-                // Финальное сообщение внизу
-                ctx.fillStyle = 'white';
-                ctx.font = `bold ${canvas.width / 20}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.shadowColor = 'rgba(255, 107, 107, 0.8)';
-                ctx.shadowBlur = 30;
-                ctx.fillText('❤️ Forever ❤️', centerX, centerY + canvas.height / 2.5);
-                ctx.shadowBlur = 0;
+                // Сердце полностью заполнено - просто ждём
                 animationId = null;
+                isComplete = true;
+                
+                // Можно добавить небольшой эффект в конце (по желанию)
+                // Просто оставляем сердце заполненным
             }
         }
         
         // ===== ЗАПУСК =====
         draw();
         
-        // Перезапуск при клике
-        canvas.addEventListener('click', () => {
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
+        // Автоматический перезапуск после заполнения
+        function restartAnimation() {
+            if (isComplete) {
+                // Ждём 2 секунды после заполнения и перезапускаем
+                setTimeout(() => {
+                    step = 0;
+                    isComplete = false;
+                    draw();
+                }, 2000);
+            } else {
+                requestAnimationFrame(restartAnimation);
             }
-            step = 0;
-            draw();
-        });
+        }
+        
+        // Запускаем цикл перезапуска
+        restartAnimation();
         
         // Перезапуск при изменении размера окна
         window.addEventListener('resize', () => {
@@ -151,6 +154,7 @@
                 animationId = null;
             }
             step = 0;
+            isComplete = false;
             draw();
         });
     </script>
