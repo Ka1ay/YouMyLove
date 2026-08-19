@@ -4,10 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I Love You ❤️</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        canvas {
+            display: block;
+            background: black;
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(255, 107, 107, 0.3);
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <canvas id="heartCanvas"></canvas>
-    <script src="script.js"></script>
+    
+    <script>
+        // ===== НАСТРОЙКИ =====
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Адаптивный размер
+        function resizeCanvas() {
+            const size = Math.min(window.innerWidth - 40, window.innerHeight - 40, 600);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resizeCanvas();
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = 15;
+        
+        // ===== ФУНКЦИЯ ДЛЯ РАСЧЁТА ТОЧЕК СЕРДЦА =====
+        function getHeartPoints() {
+            const points = [];
+            const steps = 120;
+            
+            for (let i = 0; i < steps; i++) {
+                const angle = (i / steps) * 2 * Math.PI;
+                
+                // Формула сердца из вашего Python кода
+                const x = 16 * Math.pow(Math.sin(angle), 3) * scale;
+                const y = (13 * Math.cos(angle) - 5 * Math.cos(2 * angle) - 2 * Math.cos(3 * angle) - Math.cos(4 * angle)) * scale;
+                
+                points.push({
+                    x: centerX + x,
+                    y: centerY - y // Инвертируем Y для Canvas
+                });
+            }
+            
+            return points;
+        }
+        
+        // ===== ПОСТЕПЕННОЕ ПОЯВЛЕНИЕ =====
+        let step = 0;
+        const points = getHeartPoints();
+        let animationId = null;
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Вычисляем размер шрифта в зависимости от размера экрана
+            const fontSize = Math.max(canvas.width / 35, 10);
+            
+            // Рисуем точки постепенно
+            const pointsToShow = Math.min(step, points.length);
+            
+            for (let i = 0; i < pointsToShow; i++) {
+                const p = points[i];
+                
+                // Цвет от розового к ярко-красному
+                const brightness = 60 + (i / points.length) * 30;
+                ctx.fillStyle = `hsl(340, 100%, ${brightness}%)`;
+                
+                // Настройки текста
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Свечение
+                ctx.shadowColor = 'rgba(255, 20, 147, 0.5)';
+                ctx.shadowBlur = 10;
+                
+                // Пишем "I love you"
+                ctx.fillText('I love you', p.x, p.y);
+            }
+            
+            // Убираем свечение
+            ctx.shadowBlur = 0;
+            
+            // Если ещё не все точки показаны - продолжаем анимацию
+            if (step < points.length) {
+                step += 2; // Скорость появления (чем больше число, тем быстрее)
+                animationId = requestAnimationFrame(draw);
+            } else {
+                // Финальное сообщение внизу
+                ctx.fillStyle = 'white';
+                ctx.font = `bold ${canvas.width / 20}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = 'rgba(255, 107, 107, 0.8)';
+                ctx.shadowBlur = 30;
+                ctx.fillText('❤️ Forever ❤️', centerX, centerY + canvas.height / 2.5);
+                ctx.shadowBlur = 0;
+                animationId = null;
+            }
+        }
+        
+        // ===== ЗАПУСК =====
+        draw();
+        
+        // Перезапуск при клике
+        canvas.addEventListener('click', () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            step = 0;
+            draw();
+        });
+        
+        // Перезапуск при изменении размера окна
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            // Пересчитываем координаты точек
+            const newPoints = getHeartPoints();
+            points.length = 0;
+            points.push(...newPoints);
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            step = 0;
+            draw();
+        });
+    </script>
 </body>
 </html>
