@@ -63,98 +63,82 @@
                 
                 points.push({
                     x: centerX + x,
-                    y: centerY - y // Инвертируем Y для Canvas
+                    y: centerY - y
                 });
             }
             
             return points;
         }
         
-        // ===== ПОСТЕПЕННОЕ ПОЯВЛЕНИЕ =====
-        let step = 0;
+        // ===== МЕДЛЕННОЕ ПОЯВЛЕНИЕ ПО ОДНОМУ СЛОВУ =====
         const points = getHeartPoints();
+        let currentIndex = 0; // Текущий индекс слова
         let animationId = null;
-        let isComplete = false;
+        let isAnimating = false;
+        const fontSize = Math.max(canvas.width / 35, 10);
+        
+        // Храним все нарисованные слова
+        let drawnWords = [];
         
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Вычисляем размер шрифта в зависимости от размера экрана
-            const fontSize = Math.max(canvas.width / 35, 10);
-            
-            // Рисуем точки постепенно
-            const pointsToShow = Math.min(step, points.length);
-            
-            for (let i = 0; i < pointsToShow; i++) {
-                const p = points[i];
-                
-                // Цвет от розового к ярко-красному
-                const brightness = 60 + (i / points.length) * 30;
-                ctx.fillStyle = `hsl(340, 100%, ${brightness}%)`;
-                
-                // Настройки текста
+            // Рисуем все уже появившиеся слова
+            for (let i = 0; i < drawnWords.length; i++) {
+                const word = drawnWords[i];
+                ctx.fillStyle = `hsl(340, 100%, ${word.brightness}%)`;
                 ctx.font = `bold ${fontSize}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                
-                // Свечение
                 ctx.shadowColor = 'rgba(255, 20, 147, 0.5)';
                 ctx.shadowBlur = 10;
-                
-                // Пишем "I love you"
-                ctx.fillText('I love you', p.x, p.y);
+                ctx.fillText('I love you', word.x, word.y);
             }
-            
-            // Убираем свечение
             ctx.shadowBlur = 0;
             
-            // Если ещё не все точки показаны - продолжаем анимацию
-            if (step < points.length) {
-                step += 0.3; // ОЧЕНЬ МЕДЛЕННО (было 2, теперь 0.3)
-                animationId = requestAnimationFrame(draw);
-            } else {
-                // Сердце полностью заполнено - просто ждём
-                animationId = null;
-                isComplete = true;
+            // Если есть ещё слова - добавляем следующее с задержкой
+            if (currentIndex < points.length) {
+                // Добавляем одно слово
+                const p = points[currentIndex];
+                const brightness = 60 + (currentIndex / points.length) * 30;
+                drawnWords.push({
+                    x: p.x,
+                    y: p.y,
+                    brightness: brightness
+                });
+                currentIndex++;
                 
-                // Можно добавить небольшой эффект в конце (по желанию)
-                // Просто оставляем сердце заполненным
+                // Запускаем следующее слово через 50мс (очень медленно)
+                setTimeout(() => {
+                    draw();
+                }, 50); // Чем больше число, тем медленнее
+            } else {
+                // Все слова нарисованы - ждём и перезапускаем
+                isAnimating = false;
+                setTimeout(() => {
+                    // Очищаем и начинаем заново
+                    drawnWords = [];
+                    currentIndex = 0;
+                    draw();
+                }, 3000); // Пауза 3 секунды перед повтором
             }
         }
         
         // ===== ЗАПУСК =====
         draw();
         
-        // Автоматический перезапуск после заполнения
-        function restartAnimation() {
-            if (isComplete) {
-                // Ждём 2 секунды после заполнения и перезапускаем
-                setTimeout(() => {
-                    step = 0;
-                    isComplete = false;
-                    draw();
-                }, 2000);
-            } else {
-                requestAnimationFrame(restartAnimation);
-            }
-        }
-        
-        // Запускаем цикл перезапуска
-        restartAnimation();
-        
         // Перезапуск при изменении размера окна
         window.addEventListener('resize', () => {
             resizeCanvas();
-            // Пересчитываем координаты точек
+            // Пересчитываем координаты
             const newPoints = getHeartPoints();
             points.length = 0;
             points.push(...newPoints);
+            drawnWords = [];
+            currentIndex = 0;
             if (animationId) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
+                clearTimeout(animationId);
             }
-            step = 0;
-            isComplete = false;
             draw();
         });
     </script>
